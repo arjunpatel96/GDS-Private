@@ -1,0 +1,11 @@
+# IDE - VSCode
+.vscode/
+
+build/
+# eggs
+lifelike_gds.egg-info/
+
+# Python
+__pycache__
+
+*.idea

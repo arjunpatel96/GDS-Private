@@ -1,0 +1,7 @@
+dataDirectory: ../../../data
+arango:
+  uri: https://arangodb.lifelike.bio:8530
+  user: binderhub
+  password: yhy!YHSbA^Gut9B6
+  dbname: reactome_indexed_3
+
