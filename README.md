@@ -1,6 +1,6 @@
-# GDS
+# GDS Public
 
-Knowledge mining project for Lifelike. "Forked" from the enrichment project.
+Knowledge mining project for Lifelike. "Forked" from SBRG/GDS including only the NW-arangodb branch.
 
 If you have just started working on the project, see the below sections for guidance on getting things set up.
 
