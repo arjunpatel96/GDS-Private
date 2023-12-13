@@ -1,10 +1,10 @@
 import logging
-
 import networkx as nx
+import os
+import pandas as pd
+
 from typing import List
 
-from lifelike_gds.arango_network.config_utils import read_config
-import pandas as pd
 from arango import ArangoClient
 
 class Database:
@@ -12,15 +12,14 @@ class Database:
         self.collection = collection
         if (not uri) or (not username) or (not password):
             # if not specified, use settings from lifelike_gds/arango_network/config.yml file
-            config = read_config()
             if not uri:
-                uri = config['arango']['uri']
+                uri = os.environ.get('DEFAULT_GDS_ARANGO_URI', None)
             if not username:
-                username = config['arango']['user']
+                username = os.environ.get('DEFAULT_GDS_ARANGO_USERNAME', None)
             if not password:
-                password = config['arango']['password']
+                password = os.environ.get('DEFAULT_GDS_PASSWORD', None)
             if not dbname:
-                dbname = config['arango']['dbname']
+                dbname = os.environ.get('DEFAULT_GDS_ARANGO_DBNAME', None)
         self.driver = ArangoClient(hosts=uri, verify_override=False)
         self.db = self.driver.db(dbname, username=username, password=password)
         # Check if connection works
@@ -89,7 +88,7 @@ class Database:
 
     def get_currency_nodes(self):
         query = f"""
-        FOR n IN {self.collection} 
+        FOR n IN {self.collection}
             FILTER "CurrencyMetabolite" in n.labels OR "SecondaryMetabolite" in n.labels
         """ + """
             RETURN DISTINCT {n: n}
@@ -122,7 +121,7 @@ class Database:
         exclude_ids = [n.id for n in exclude_nodes]
         include_ids = [n.id for n in include_nodes]
         return_stmt = """
-        return n1.displayName as sourceName, n2.displayName as targetName, length(p) as shortestPathLen;  
+        return n1.displayName as sourceName, n2.displayName as targetName, length(p) as shortestPathLen;
         """
         query = self._get_shortest_paths_match_stmt() + self._get_where_stmt(len(rels)>0, len(exclude_nodes)>0, len(include_nodes)>0) + return_stmt
         # print(query)
@@ -232,4 +231,3 @@ class GraphSource:
 
     def get_node_data_for_excel(self, node_ids:[]):
         pass
-
