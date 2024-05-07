@@ -1,4 +1,3 @@
-dataDirectory: ../../../data
 arango:
   uri: https://arangodb.lifelike.bio:8530
   user: binderhub

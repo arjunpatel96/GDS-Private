@@ -1,10 +1,5 @@
 from lifelike_gds.arango_network.radiate_trace import *
 from lifelike_gds.arango_network.reactome import *
-from lifelike_gds.arango_network.config_utils import get_data_dir
-
-datadir = get_data_dir()
-input_dir = os.path.join(datadir, 'eot', 'input')
-output_dir = os.path.join(datadir, 'eot', 'output')
 
 NODE_SETS = ['Survivor and Non-Survivor', 'Survivor', 'Non-Survivor']
 """
@@ -14,14 +9,14 @@ analysis and traces using reference entity as starting nodes instead of physical
 
 
 class PlasmaMetabolitesRadiateTracing:
-    def __init__(self, dbname):
+    def __init__(self, dbname, output_dir='./eot/output'):
         database = ReactomeDB(dbname)
         self.graphsource = Reactome(database)
         self.tracegraph = RadiateTrace(self.graphsource)
         self.graphsource.initiate_trace_graph(self.tracegraph)
         self.tracegraph.set_datadir(output_dir)
 
-    def _get_plasma_metabolite_reference_entities(self, group):
+    def _get_plasma_metabolite_reference_entities(self, group, input_dir='./eot/input'):
         """
         Each metabolite (ref_id) could match to multiple reactome entities. Trying to use reference entities as
         analysis sources
@@ -40,11 +35,12 @@ class PlasmaMetabolitesRadiateTracing:
         print(group, "nodes:", len(df), "ref_ids:", len(ref_ids))
         return ref_ids
 
-    def add_group_nodes(self, group, reverse_reference):
+    def add_group_nodes(self, group, reverse_reference, input_dir='./eot/input'):
         """
         Add reference entities into the projected graph. If the reference entities are for sources,
         the relationship 'referenceEntity' need to be reversed to 'hasEntity'
         Args:
+            input_dir:
             group: survival groups, key for list of reference ids
             reverse_reference: If true, reverse 'referenceEntity' direction, and change edge type to 'hasEntity'
         Returns:
@@ -77,7 +73,7 @@ class PlasmaMetabolitesRadiateTracing:
                             type: 'referenceEntity'
                         }
             """
-        ref_ids = self._get_plasma_metabolite_reference_entities(group)
+        ref_ids = self._get_plasma_metabolite_reference_entities(group, input_dir=input_dir)
         self.tracegraph.add_nodes(node_query2, ref_ids=ref_ids)
         self.tracegraph.add_rels(node_rel2, ref_ids=ref_ids)
         logging.info(nx.info(self.tracegraph.graph))

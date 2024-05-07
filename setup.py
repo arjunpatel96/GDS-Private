@@ -24,12 +24,14 @@ setuptools.setup(
     packages=setuptools.find_packages(where="src"),
     python_requires=">=3.9",
     install_requires=[
-        "pandas~=1.3.3",
-        "numpy~=1.21.2",
+        "pandas~=2.0.3",
+        "numpy>=1.25.0",
         "simplejson~=3.17.5",
         "networkx~=2.6.3",
-        "scipy~=1.7.1",
-        "python-arango~=7.5.4",
+        "scipy>=1.9",
+        "python-arango~=7.6.0",
         "xlsxwriter~=3.0.1",
-    ]
+    ],
+    package_data={'lifelike_gds': ['**/*.yml']},
+    include_package_data=True
 )

@@ -1,7 +1,5 @@
 from lifelike_gds.arango_network.radiate_trace import *
 from lifelike_gds.arango_network.reactome import *
-from lifelike_gds.arango_network.config_utils import get_data_dir
-import pandas as pd
 
 GROUP_A = ["Survivor"]
 GROUP_D = ["Non-Survivor"]
@@ -16,13 +14,12 @@ class MetabsFoldChangeAbsAnalysis(object):
     D - Non-Survivor
     A - Survivor
     """
-    def __init__(self, dbname):
+
+    def __init__(self, dbname, input_dir='./eot/input', output_dir='./eot/output'):
         self.graphsource = Reactome(ReactomeDB(dbname))
         self.tracegraph = RadiateTrace(self.graphsource)
-        datadir = get_data_dir()
-        self.input_dir = os.path.join(datadir, 'eot', 'input')
-        self.output_dir = os.path.join(datadir, 'eot', 'output')
-        os.makedirs(self.output_dir, 0o777, True)
+        self.input_dir = input_dir
+        self.output_dir = output_dir
         self.tracegraph.datadir = self.output_dir
         self.group_a_values = {}
         self.group_d_values = {}
@@ -39,9 +36,9 @@ class MetabsFoldChangeAbsAnalysis(object):
         df1 = df1[df1["compartment_select"] == 1]
         df1["lower_name"] = df1['name'].str.lower()
         df2 = pd.read_excel(
-                file,
-                sheet_name="Sheet1",
-                usecols=["Metabolite name", "A-FC-ABS", "D-FC-ABS", "D/A-FC-ABS"]
+            file,
+            sheet_name="Sheet1",
+            usecols=["Metabolite name", "A-FC-ABS", "D-FC-ABS", "D/A-FC-ABS"]
         )
         df2["lower_name"] = df2["Metabolite name"].str.lower()
         df = pd.merge(df1, df2, on='lower_name', how='outer')
@@ -75,10 +72,10 @@ class MetabsFoldChangeAbsAnalysis(object):
         self.group_d_values = {row['id']: row['D-FC-ABS'] for index, row in df.iterrows()}
         self.group_da_values = {row['id']: row['D/A-FC-ABS'] for index, row in df.iterrows()}
         self.tracegraph.set_node_set(
-                SOURCES,
-                ids,
-                name=SOURCES,
-                description='plasma metabs with rna-seq changes between survivor and non-survior groups'
+            SOURCES,
+            ids,
+            name=SOURCES,
+            description='plasma metabs with rna-seq changes between survivor and non-survior groups'
         )
 
     def export_pagerank_values(self):
@@ -94,10 +91,10 @@ class MetabsFoldChangeAbsAnalysis(object):
                                              sources_personalization=self.group_d_values, num_nodes=5000)
         self.tracegraph.graph = self.tracegraph.orig_graph.copy()
         self.tracegraph.export_pagerank_data(
-                SOURCES,
-                f"{SOURCES}_pageranks_with_NonServivor_over_Survivor_rnaseq_FC_vals.xlsx",
-                sources_personalization=self.group_da_values,
-                num_nodes=5000
+            SOURCES,
+            f"{SOURCES}_pageranks_with_NonServivor_over_Survivor_rnaseq_FC_vals.xlsx",
+            sources_personalization=self.group_da_values,
+            num_nodes=5000
         )
 
 
