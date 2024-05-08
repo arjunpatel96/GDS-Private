@@ -2,40 +2,40 @@ import os
 import pandas as pd
 
 # Functions to get nodes in different ways
-def get_nodes_by_identity_from_file(database, input_dir, csv_filename, id_name, id_column, sep=','):
-    df = pd.read_csv(os.path.join(input_dir, csv_filename), sep=sep, dtype='str')
+def get_nodes_by_identity_from_file(database, csv_file_ref, id_name, id_column, sep=','):
+    df = pd.read_csv(csv_file_ref, sep=sep, dtype='str')
     ids = [n for n in df[id_column]]
     nodes = database.get_nodes_by_attr(ids, id_name)
     print('file_rows:', len(df), ', nodes matched:', len(nodes))
     return nodes
 
 
-def get_chemical_nodes_by_chebi(database, input_dir, csv_filename, chebi_id_column, sep=','):
-    df = pd.read_csv(os.path.join(input_dir, csv_filename), sep=sep, dtype='str')
+def get_chemical_nodes_by_chebi(database, csv_file_ref, chebi_id_column, sep=','):
+    df = pd.read_csv(csv_file_ref, sep=sep, dtype='str')
     ids = [n for n in df[chebi_id_column]]
     nodes = database.get_entity_nodes_by_chebi_ids(ids)
     print('file_rows:', len(df), ', nodes matched:', len(nodes))
     return nodes
 
 
-def get_protein_nodes_by_gene_id(database, input_dir, csv_filename, gene_id_column, sep=','):
-    df = pd.read_csv(os.path.join(input_dir, csv_filename), sep=sep, dtype='str')
+def get_protein_nodes_by_gene_id(database, csv_file_ref, gene_id_column, sep=','):
+    df = pd.read_csv(csv_file_ref, sep=sep, dtype='str')
     ids = [n for n in df[gene_id_column]]
     nodes = database.get_entity_nodes_by_gene_ids(ids)
     print('file_rows:', len(df), ', nodes matched:', len(nodes))
     return nodes
 
 
-def get_reference_nodes_by_chebi(database, input_dir, csv_filename, chebi_id_column, sep=','):
-    df = pd.read_csv(os.path.join(input_dir, csv_filename), sep=sep, dtype='str')
+def get_reference_nodes_by_chebi(database, csv_file_ref, chebi_id_column, sep=','):
+    df = pd.read_csv(csv_file_ref, sep=sep, dtype='str')
     ids = [n for n in df[chebi_id_column]]
     nodes = database.get_reference_nodes_by_chebi_ids(ids)
     print('file_rows:', len(df), ', nodes matched:', len(nodes))
     return nodes
 
 
-def get_reference_nodes_by_gene_id(database, input_dir, csv_filename, gene_id_column, sep=','):
-    df = pd.read_csv(os.path.join(input_dir, csv_filename), sep=sep, dtype='str')
+def get_reference_nodes_by_gene_id(database, csv_file_ref, gene_id_column, sep=','):
+    df = pd.read_csv(csv_file_ref, sep=sep, dtype='str')
     ids = [n for n in df[gene_id_column]]
     nodes = database.get_reference_nodes_by_gene_ids(ids)
     print('file_rows:', len(df), ', nodes matched:', len(nodes))
@@ -95,17 +95,17 @@ def write_shortest_paths(
 
 
 
-def get_selected_nodes(input_dir, filename, sheet_name):
+def get_selected_nodes(file_ref, sheet_name):
     """
     Read file for nodes selection.  The file was generated from radiate analysis but contains user's node selection. 
     Any columns after 'nReach' or 'rev_nReach' will be scanned for value '1' as selected rows.
     Users can use the column name to specific the selected nodes, such as 'selected_genes', 'selected_compounds' 
 
-    filename: the file with nodes selection based on radiate analysis
+    file_ref: file path or url with nodes selection based on radiate analysis
     sheet_name: 'pageranks' or 'reverse pageranks'
     return dict with column name as key, and selected node eids as value
     """
-    df = pd.read_excel(os.path.join(input_dir, filename), sheet_name)
+    df = pd.read_excel(file_ref, sheet_name)
     colnames = [c for c in df.columns]
     if 'nReach' in colnames:
         select_cols = colnames[colnames.index('nReach') + 1 :]

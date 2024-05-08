@@ -1,9 +1,7 @@
 import os
 
-from lifelike_gds.arango_network.reactome import *
 from lifelike_gds.arango_network.radiate_trace import RadiateTrace
-from lifelike_gds.arango_network.config_utils import get_data_dir
-import pandas as pd
+from lifelike_gds.arango_network.reactome import *
 
 """
 get the shortest paths and highest influence paths from "PPARKA:RXRA Coactivator complex" to cluster2 cluster 4 in and out metabolites. 
@@ -11,10 +9,6 @@ The highest influence paths will be calculated based on personalized rev pageran
 
 trace output folder: https://staging.lifelike.bio/projects/GDS-Results/folders/02oW0MmJGGARE4s8S9vQDH
 """
-DATADIR = get_data_dir()
-input_dir = os.path.join(DATADIR, 'eot', 'input')
-output_dir = os.path.join(DATADIR, 'eot', 'output')
-os.makedirs(output_dir, 0o777, True)
 
 uri = os.getenv('ARANGO_URI', 'bolt://localhost:7687')
 username = os.getenv('ARANGO_USER', 'arango')
@@ -28,7 +22,7 @@ source_desc = "EoT cluster2,4 in and out chemicals"
 source_file = "endo_match_inout_chems.xlsx"
 
 
-def get_source_nodes():
+def get_source_nodes(input_dir='./eot/input'):
     infile = os.path.join(input_dir, source_file)
     df = pd.read_excel(infile, usecols=['Cluster', 'IN stId', 'OUT stId'])
     df = df[(df['Cluster'] == 2) | (df['Cluster'] == 4)]
@@ -43,7 +37,7 @@ def get_selected_nodes():
     return selected_nodes
 
 
-def write_traces_from_PPARA_RXRA_Complex_to_inout_chemicals():
+def write_traces_from_PPARA_RXRA_Complex_to_inout_chemicals(output_dir='./eot/output'):
     tracegraph = RadiateTrace(Reactome(database))
     tracegraph.datadir = output_dir
     tracegraph.init_default_graph()

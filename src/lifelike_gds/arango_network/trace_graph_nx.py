@@ -28,7 +28,7 @@ class TraceGraphNx:
         self.graphsource = graphsource
         self.directed = directed
         self.paths = []
-        self.datadir = "~"
+        self.datadir = "."
         if multigraph:
             self.graph = MultiDirectedGraph(nx.MultiDiGraph())
         else:
@@ -189,6 +189,7 @@ class TraceGraphNx:
         """
         self.clean_graph()
         self.load_graph_detail()
+        os.makedirs(self.datadir, exist_ok=True)
         write_sankey_file(os.path.join(self.datadir, filename), self.graph)
 
     def write_cytoscape_json(self, filename=None):

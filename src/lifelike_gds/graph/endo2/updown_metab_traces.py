@@ -1,22 +1,14 @@
 import os
 
-from lifelike_gds.arango_network.reactome import *
 from lifelike_gds.arango_network.inbetweenness_trace import InBetweennessTrace
 from lifelike_gds.arango_network.radiate_trace import RadiateTrace
+from lifelike_gds.arango_network.reactome import *
 from lifelike_gds.arango_network.trace_graph_nx import TraceGraphNx
 from lifelike_gds.arango_network.trace_graph_utils import *
-from lifelike_gds.arango_network.config_utils import get_data_dir
-import pandas as pd
-
-datadir = get_data_dir()
-input_dir = os.path.join(datadir, 'endo', 'input')
-output_dir = os.path.join(datadir, 'endo', 'output')
-inputfile = "endo_match_inout_chems.xlsx"
 
 dbname = os.getenv('ARANGO_DATABASE', 'reactome-human')
 db_version = 'reactome-human from 12152021 dump'
 # database = ReactomeDB(dbname, uri, username, password)
-
 
 
 UPDOWN_GENES = "updowngenes"
@@ -30,12 +22,14 @@ Compare betweenness data with pagerank (intersection).
 Since betweenness used subgraph of shortest paths. Run pageranks using the same subgraph to compare.  Then compare pageranks 
 using the whole graph (whole database)
 """
+
+
 class UpdownGeneMetabTrace(RadiateTrace, InBetweennessTrace):
-    def __init__(self, dbname):
+    def __init__(self, dbname, uri, username, password, input_dir='./eno/input', output_dir='./eno/output'):
         self.graphsource = Reactome(ReactomeDB(dbname, uri, username, password))
         TraceGraphNx.__init__(self, self.graphsource, False)
-        self.source_nodes = self.get_updown_genes()
-        self.target_nodes = self.get_metabs()
+        self.source_nodes = self.get_updown_genes(input_dir=input_dir)
+        self.target_nodes = self.get_metabs(input_dir=input_dir)
         self.datadir = output_dir
         self.init_graph()
 
@@ -47,7 +41,7 @@ class UpdownGeneMetabTrace(RadiateTrace, InBetweennessTrace):
         self.set_node_set_from_arango_nodes(self.source_nodes, UPDOWN_GENES, "up and down endo genes")
         self.set_node_set_from_arango_nodes(self.target_nodes, METABS, 'endo metabolites')
 
-    def get_updown_genes(self):
+    def get_updown_genes(self, input_dir='./eno/input'):
         infile = f"updown.tsv"
         query = """
         FOR n IN reactome
@@ -64,7 +58,7 @@ class UpdownGeneMetabTrace(RadiateTrace, InBetweennessTrace):
         print(f"{len(df)} gene_ids, matched to {len(nodes)} proteins")
         return nodes
 
-    def get_metabs(self):
+    def get_metabs(self, input_dir='./eno/input'):
         infile = f"metabolite.txt"
         query = """
         FOR r IN reactome 
@@ -80,7 +74,7 @@ class UpdownGeneMetabTrace(RadiateTrace, InBetweennessTrace):
         print(f"{len(df)} chebi_ids, matched to {len(nodes)} chemicals")
         return nodes
 
-    def write_pagerank_betweenness_compare_data_to_excel(self, num_nodes=2000):
+    def write_pagerank_betweenness_compare_data_to_excel(self, output_dir='./eno/output', num_nodes=2000):
         self.compute_inbetweenness(UPDOWN_GENES, METABS)
         self.set_pagerank_and_numreach(UPDOWN_GENES, 'forward')
         self.set_pagerank_and_numreach(METABS, 'reverse')
@@ -96,7 +90,8 @@ class UpdownGeneMetabTrace(RadiateTrace, InBetweennessTrace):
         forward_nodes = self.get_most_weighted_nodes(self.get_pagerank_prop_name(UPDOWN_GENES), num_nodes)
         back_nodes = self.get_most_weighted_nodes(self.get_rev_pagerank_prop_name(METABS), num_nodes)
         between_nodes = self.get_most_weighted_nodes(self.get_betweenness_prop_name(UPDOWN_GENES, METABS), num_nodes)
-        inter_nodes = self.get_least_weighted_nodes(self.get_intersection_rank_prop_name(UPDOWN_GENES, METABS), num_nodes)
+        inter_nodes = self.get_least_weighted_nodes(self.get_intersection_rank_prop_name(UPDOWN_GENES, METABS),
+                                                    num_nodes)
         all_nodes.update(forward_nodes)
         all_nodes.update(back_nodes)
         all_nodes.update(between_nodes)
@@ -114,7 +109,8 @@ class UpdownGeneMetabTrace(RadiateTrace, InBetweennessTrace):
         print(len(selected_nodes))
         self.compute_inbetweenness(UPDOWN_GENES, METABS)
         self.export_inbetweenness_data(UPDOWN_GENES, METABS, f"{UPDOWN_GENES}-{METABS}-betweenness_rel.xlsx")
-        self.add_inbetweenness_trace_networks_with_selected_nodes(selected_nodes, UPDOWN_GENES, METABS, include_allshortest_path=False)
+        self.add_inbetweenness_trace_networks_with_selected_nodes(selected_nodes, UPDOWN_GENES, METABS,
+                                                                  include_allshortest_path=False)
         self.write_to_sankey_file(f"{UPDOWN_GENES}_to_{METABS}_selected_nodes_betweenness_traces_rel.graph")
 
 

@@ -1,9 +1,9 @@
-from lifelike_gds.arango_network.biocyc import *
-from lifelike_gds.arango_network.radiate_trace import *
-from lifelike_gds.arango_network.inbetweenness_trace import *
-from lifelike_gds.arango_network.trace_graph_utils import *
-from lifelike_gds.arango_network.config_utils import get_data_dir
 import os
+
+from lifelike_gds.arango_network.biocyc import *
+from lifelike_gds.arango_network.inbetweenness_trace import *
+from lifelike_gds.arango_network.radiate_trace import *
+from lifelike_gds.arango_network.trace_graph_utils import *
 
 """
 sources: Feedbatch 2 imodulon genes with RNA-seq fold changes from early to later (26-34 hrs) timepoints. 
@@ -13,13 +13,9 @@ targets: biomass precursor metabs
 perform intersection pageranks (source personalized with starting values, target no tarting values)
 
 """
-DATADIR = os.path.join(get_data_dir(), "metal_biomass")
-input_dir = os.path.join(DATADIR, 'input')
-output_dir = os.path.join(DATADIR, 'output')
-os.makedirs(output_dir, 0o777, True)
-
 UPDOWN_GENES = 'FB2Updowns'
 METABS = "BiomassMetabs"
+
 
 class FB2UpdownGenesToBiomassMetabs(RadiateTrace, InBetweennessTrace):
     def __init__(self, dbname, exclude_currency=True):
@@ -33,11 +29,10 @@ class FB2UpdownGenesToBiomassMetabs(RadiateTrace, InBetweennessTrace):
     def init_graph(self, exclude_currency):
         self.init_default_graph(exclude_currency)
         self.set_node_set_from_arango_nodes(self.gene_nodes, UPDOWN_GENES,
-                                     "rnaseq up and down changed genes with cut-off log2 > 1")
+                                            "rnaseq up and down changed genes with cut-off log2 > 1")
         self.set_node_set_from_arango_nodes(self.metab_nodes, METABS, "Biomass precursor metabolites")
 
-    def get_updown_genes_with_vals(self):
-        file = f"{input_dir}/updown_genes_FC_log2of1cutoff.xlsx"
+    def get_updown_genes_with_vals(self, file="./metal_biomass/input/updown_genes_FC_log2of1cutoff.xlsx"):
         df = pd.read_excel(file, usecols=['biocyc_id', 'FC', 'log2'])
         # print(df.head())
         # find database node for genes and node id (arango_id)
@@ -66,7 +61,7 @@ class FB2UpdownGenesToBiomassMetabs(RadiateTrace, InBetweennessTrace):
         return nodes
 
     def write_pagerank_betweenness_compare_data_to_excel(self, outfile, num_nodes=3000, source_start_val=None,
-                                                         exclude_sourcetarget_nodes_from_outputfile = False):
+                                                         exclude_sourcetarget_nodes_from_outputfile=False):
         """
         Compoute pageranks, intersection pageranks and betweenness values, and write the computed data into excel file
         Args:
@@ -89,10 +84,14 @@ class FB2UpdownGenesToBiomassMetabs(RadiateTrace, InBetweennessTrace):
             # exclude starting and ending nodes from the highest ranked nodes file, optional
             exclude_nodes = self.graph.node_set(UPDOWN_GENES) | self.graph.node_set(METABS)
 
-        forward_nodes = self.get_most_weighted_nodes(self.get_pagerank_prop_name(UPDOWN_GENES), num_nodes,  exclude_nodes=exclude_nodes)
-        back_nodes = self.get_most_weighted_nodes(self.get_rev_pagerank_prop_name(METABS), num_nodes, exclude_nodes=exclude_nodes)
-        between_nodes = self.get_most_weighted_nodes(self.get_betweenness_prop_name(UPDOWN_GENES, METABS), num_nodes, exclude_nodes=exclude_nodes)
-        inter_nodes = self.get_least_weighted_nodes(self.get_intersection_rank_prop_name(UPDOWN_GENES, METABS), num_nodes, exclude_nodes=exclude_nodes)
+        forward_nodes = self.get_most_weighted_nodes(self.get_pagerank_prop_name(UPDOWN_GENES), num_nodes,
+                                                     exclude_nodes=exclude_nodes)
+        back_nodes = self.get_most_weighted_nodes(self.get_rev_pagerank_prop_name(METABS), num_nodes,
+                                                  exclude_nodes=exclude_nodes)
+        between_nodes = self.get_most_weighted_nodes(self.get_betweenness_prop_name(UPDOWN_GENES, METABS), num_nodes,
+                                                     exclude_nodes=exclude_nodes)
+        inter_nodes = self.get_least_weighted_nodes(self.get_intersection_rank_prop_name(UPDOWN_GENES, METABS),
+                                                    num_nodes, exclude_nodes=exclude_nodes)
         all_nodes = set()
         all_nodes.update(forward_nodes)
         all_nodes.update(back_nodes)
@@ -114,7 +113,7 @@ class FB2UpdownGenesToBiomassMetabs(RadiateTrace, InBetweennessTrace):
         Returns:
         """
         self.graph = self.orig_graph.copy()
-        pr = 'PR'   # no weight
+        pr = 'PR'  # no weight
         pr_fc = 'PR_FC'  # use Fold-change as weight
         pr_log2 = 'PR_Log2'  # use log2(fold-change) as weight
         rev_pr = 'PR_rev'
@@ -148,15 +147,15 @@ class FB2UpdownGenesToBiomassMetabs(RadiateTrace, InBetweennessTrace):
         nx.set_node_attributes(self.graph, status_props, 'status')
         nodes = set()
         if inbetweenness:
-            nodes = set([n for n, d in self.graph.nodes(data=True) if (btw in d) or (btw_pr in d) or (btw_fc in d) or (btw_log2 in d)])
-        inter_nodes = [n for n, d in self.graph.nodes(data=True) if (d[rev_pr]>0) and (d[pr]>0) ]
+            nodes = set([n for n, d in self.graph.nodes(data=True) if
+                         (btw in d) or (btw_pr in d) or (btw_fc in d) or (btw_log2 in d)])
+        inter_nodes = [n for n, d in self.graph.nodes(data=True) if (d[rev_pr] > 0) and (d[pr] > 0)]
         nodes.update(self.get_most_weighted_nodes(inter_pr, num_nodes, include_nodes=inter_nodes))
         nodes.update(self.get_most_weighted_nodes(inter_fc, num_nodes, include_nodes=inter_nodes))
         nodes.update(self.get_most_weighted_nodes(inter_log2, num_nodes, include_nodes=inter_nodes))
         print(len(nodes))
         df = self.get_nodes_detail_as_dataframe(nodes)
         df.to_excel(os.path.join(self.datadir, outfile), index=False)
-
 
     def write_betweenness_file(self, outfile):
         """
@@ -172,9 +171,9 @@ class FB2UpdownGenesToBiomassMetabs(RadiateTrace, InBetweennessTrace):
         rev_pr = 'PR_rev'  # for target
 
         btw = 'inbtw'
-        btw_pr = 'inbtw_PR' # inbetweenness based on pagerank
-        btw_fc = 'inbtw_PR_FC' # inbetweenness based on pagerank with fold-change
-        btw_log2 = 'inbtw_PR_Log2' # inbetweenness based on pagerank with log2(fold-change)
+        btw_pr = 'inbtw_PR'  # inbetweenness based on pagerank
+        btw_fc = 'inbtw_PR_FC'  # inbetweenness based on pagerank with fold-change
+        btw_log2 = 'inbtw_PR_Log2'  # inbetweenness based on pagerank with log2(fold-change)
 
         add_pagerank(self.graph, UPDOWN_GENES, pagerank_prop=pr, contribution=False)
         add_pagerank(self.graph, UPDOWN_GENES, personalization=self.fc_values, pagerank_prop=pr_fc,
@@ -202,12 +201,13 @@ class FB2UpdownGenesToBiomassMetabs(RadiateTrace, InBetweennessTrace):
         selected = ['CPD-15318', 'CPD-546', 'FRU1P']
         nodes = self.graphsource.database.get_nodes_by_attr(selected, 'biocyc_id', 'db_BioCyc')
         selected_set_name = 'selected_compounds'
-        self.set_node_set_from_arango_nodes(nodes, selected_set_name, 'compounds cannot be found for intersection analysis')
+        self.set_node_set_from_arango_nodes(nodes, selected_set_name,
+                                            'compounds cannot be found for intersection analysis')
         self.add_single_shortest_path(UPDOWN_GENES, selected_set_name)
         self.add_single_shortest_path(selected_set_name, METABS)
         self.write_to_sankey_file('crash_missed_compounds_traces.graph')
 
-    def write_traces_with_selected_inter_nodes(self, node_eids:[], name, desc):
+    def write_traces_with_selected_inter_nodes(self, node_eids: [], name, desc):
         selected_nodes = self.graphsource.database.get_nodes_by_attr(node_eids, 'eid', 'db_BioCyc')
         pr = 'PR'
         rev_pr = 'PR_rev'
@@ -215,16 +215,17 @@ class FB2UpdownGenesToBiomassMetabs(RadiateTrace, InBetweennessTrace):
         add_pagerank(self.graph, METABS, pagerank_prop=rev_pr, reverse=True, contribution=True)
         self.set_node_set_from_arango_nodes(selected_nodes, name, desc)
         self.add_traces_from_sources_to_each_selected_nodes(selected_nodes, UPDOWN_GENES, pr, name)
-        if len(selected_nodes)>1:
+        if len(selected_nodes) > 1:
             self.add_trace_from_sources_to_all_selected_nodes(name, UPDOWN_GENES, pr, f"Forward {name}")
         self.add_traces_from_each_selected_nodes_to_targets(selected_nodes, METABS, rev_pr, name)
-        if len(selected_nodes)>1:
+        if len(selected_nodes) > 1:
             self.add_trace_from_all_selected_nodes_to_targets(name, METABS, rev_pr, f"Reverse {name}")
 
         filename = f'Trace_Crash_{UPDOWN_GENES}_{METABS}_with_{name}.graph'
         self.graph.describe(desc)
         self.graph.describe(f"Traces from {UPDOWN_GENES} to {name} and from {name} to {METABS}")
         self.write_to_sankey_file(filename)
+
 
 def write_pagerank_file():
     """
@@ -239,6 +240,7 @@ def write_pagerank_file():
     filename = f"Crash_UpdownGenes_biomassMetags_pagerank_exclude_sec_{num_nodes}.xlsx"
     trace.write_pagerank_inbetweenness_file(filename, num_nodes, False)
 
+
 def write_inbetweenness_file():
     """
     Calculate inbetweenness using different edge weights.  The default one inbtw did not use weight
@@ -248,12 +250,14 @@ def write_inbetweenness_file():
     filename = f"Crash_{UPDOWN_GENES}_{METABS}_inbetweenness.xlsx"
     trace.write_betweenness_file(filename)
 
+
 def write_traces_with_ZnMn():
-    selected_ids=['ZN+2', 'MN+2']
+    selected_ids = ['ZN+2', 'MN+2']
     name = 'Zn-Mn'
     desc = 'Top ranked metals Zn2+ and Mn2+ by unweighted pagerank intersection analysis'
     trace = FB2UpdownGenesToBiomassMetabs('ecocyc-25.5-gds', True)
     trace.write_traces_with_selected_inter_nodes(selected_ids, name, desc)
+
 
 def write_traces_with_top_betweenness_rxn():
     selected_ids = ['L-GLN-FRUCT-6-P-AMINOTRANS-RXN_r']
@@ -262,11 +266,9 @@ def write_traces_with_top_betweenness_rxn():
     trace = FB2UpdownGenesToBiomassMetabs('ecocyc-25.5-gds', True)
     trace.write_traces_with_selected_inter_nodes(selected_ids, name, desc)
 
+
 if __name__ == "__main__":
     # write_pagerank_file()
     # write_inbetweenness_file
     # write_traces_with_ZnMn()
     write_traces_with_top_betweenness_rxn()
-
-
-
